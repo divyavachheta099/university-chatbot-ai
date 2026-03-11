@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UniBot — Crestwood University</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0b1624;
+    --surface:   rgba(255,255,255,0.045);
+    --border:    rgba(255,255,255,0.09);
+    --gold:      #f0a500;
+    --gold-lt:   #fcd34d;
+    --text:      #f0f4ff;
+    --muted:     rgba(255,255,255,0.45);
+    --bot-bg:    #ffffff;
+    --bot-txt:   #1a2233;
+    --user-bg:   linear-gradient(135deg,#1b3a60,#2d5a90);
+    --radius:    18px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: radial-gradient(ellipse at 30% 20%, #142340 0%, #0b1624 55%, #0e1f38 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 10px; }
+
+  /* ── Card ── */
+  .card {
+    width: 100%;
+    max-width: 680px;
+    height: min(90vh, 780px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 26px;
+    backdrop-filter: blur(24px);
+    box-shadow: 0 40px 100px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255,255,255,0.025);
+  }
+
+  .header-icon {
+    width: 46px; height: 46px;
+    border-radius: 13px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-lt));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 18px rgba(240,165,0,0.38);
+    flex-shrink: 0;
+  }
+
+  .header-title {
+    font-family: 'Playfair Display', serif;
+    color: var(--text);
+    font-size: 19px;
+    letter-spacing: -0.2px;
+  }
+
+  .header-sub {
+    color: var(--muted);
+    font-size: 12.5px;
+    margin-top: 2px;
+  }
+
+  .status-pill {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(74,222,128,0.1);
+    border: 1px solid rgba(74,222,128,0.28);
+    border-radius: 100px;
+    padding: 5px 13px;
+    font-size: 12px;
+    color: #4ade80;
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    background: #4ade80;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:0.5; transform:scale(0.8); }
+  }
+
+  /* ── Topic pills ── */
+  .topics {
+    display: flex;
+    gap: 7px;
+    padding: 11px 18px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border);
+    scrollbar-width: none;
+  }
+  .topics::-webkit-scrollbar { display: none; }
+
+  .topic-pill {
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: 100px;
+    padding: 5px 13px;
+    color: rgba(255,255,255,0.75);
+    font-size: 12.5px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .topic-pill:hover {
+    background: rgba(240,165,0,0.18);
+    border-color: rgba(240,165,0,0.45);
+    color: var(--gold-lt);
+  }
+
+  /* ── Messages ── */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  /* Welcome */
+  .welcome {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    animation: fadeUp .4s ease both;
+  }
+
+  .welcome-emoji { font-size: 42px; margin-bottom: 12px; }
+
+  .welcome h2 {
+    font-family: 'Playfair Display', serif;
+    color: var(--text);
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .welcome p {
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.65;
+    margin-bottom: 18px;
+  }
+
+  .welcome-chips {
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  }
+
+  .welcome-chip {
+    background: rgba(240,165,0,0.13);
+    border: 1px solid rgba(240,165,0,0.32);
+    border-radius: 100px;
+    padding: 6px 14px;
+    color: var(--gold-lt);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background .15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .welcome-chip:hover { background: rgba(240,165,0,0.28); }
+
+  /* Message rows */
+  .msg-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    animation: fadeUp .28s ease both;
+  }
+
+  .msg-row.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+
+  .msg-row.bot  .avatar { background: linear-gradient(135deg,#1b3a60,#2d5a90); }
+  .msg-row.user .avatar { background: linear-gradient(135deg,var(--gold),var(--gold-lt)); }
+
+  .bubble-wrap { display: flex; flex-direction: column; gap: 4px; max-width: 73%; }
+  .msg-row.user .bubble-wrap { align-items: flex-end; }
+
+  .bubble {
+    padding: 11px 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    border-radius: var(--radius);
+  }
+
+  .msg-row.bot  .bubble {
+    background: var(--bot-bg);
+    color: var(--bot-txt);
+    border-top-left-radius: 4px;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.1);
+    border: 1px solid #e4eaf4;
+  }
+
+  .msg-row.user .bubble {
+    background: var(--user-bg);
+    color: #fff;
+    border-top-right-radius: 4px;
+    box-shadow: 0 4px 16px rgba(27,58,96,0.4);
+  }
+
+  .bubble strong { font-weight: 600; }
+  .bubble em { font-style: italic; }
+
+  .ts {
+    font-size: 10.5px;
+    color: var(--muted);
+    padding: 0 4px;
+  }
+
+  /* Suggestions */
+  .sug-row {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 6px;
+  }
+
+  .sug-chip {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 100px;
+    padding: 5px 12px;
+    color: rgba(255,255,255,0.75);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .sug-chip:hover {
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  /* Typing */
+  .typing-bubble {
+    background: var(--bot-bg);
+    color: var(--bot-txt);
+    border-top-left-radius: 4px;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex; gap: 5px; align-items: center;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.1);
+    border: 1px solid #e4eaf4;
+  }
+
+  .typing-dot {
+    width: 7px; height: 7px;
+    background: #94a3b8;
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay:.2s; }
+  .typing-dot:nth-child(3) { animation-delay:.4s; }
+
+  @keyframes bounce {
+    0%,80%,100% { transform:translateY(0); opacity:.4; }
+    40%          { transform:translateY(-7px); opacity:1; }
+  }
+
+  /* ── Input bar ── */
+  .input-bar {
+    padding: 13px 16px;
+    border-top: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .input-wrap {
+    flex: 1;
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 13px;
+    display: flex; align-items: center;
+    padding: 0 16px;
+    transition: border-color .15s;
+  }
+
+  .input-wrap:focus-within {
+    border-color: rgba(240,165,0,0.5);
+    box-shadow: 0 0 0 3px rgba(240,165,0,0.08);
+  }
+
+  .input-wrap input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 13px 0;
+  }
+
+  .input-wrap input::placeholder { color: rgba(255,255,255,0.3); }
+
+  .send-btn {
+    width: 46px; height: 46px;
+    border-radius: 13px;
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+
+  .send-btn.active {
+    background: linear-gradient(135deg, var(--gold), var(--gold-lt));
+    box-shadow: 0 4px 16px rgba(240,165,0,0.38);
+  }
+
+  .send-btn.inactive {
+    background: rgba(255,255,255,0.07);
+    cursor: default;
+  }
+
+  .send-btn.active:hover { transform: scale(1.06); }
+  .send-btn.active:active { transform: scale(0.95); }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    margin-top: 13px;
+    color: rgba(255,255,255,0.2);
+    font-size: 11.5px;
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="card">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-icon">🎓</div>
+      <div>
+        <div class="header-title">UniBot · Crestwood University</div>
+        <div class="header-sub">AI Student Support — powered by Claude</div>
+      </div>
+      <div class="status-pill">
+        <div class="dot"></div> Online
+      </div>
+    </div>
+
+    <!-- Topic pills -->
+    <div class="topics">
+      <button v-for="t in topics" :key="t.label" class="topic-pill" @click="send(t.q)">
+        {{ t.icon }} {{ t.label }}
+      </button>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages" ref="msgBox">
+
+      <!-- Welcome screen -->
+      <div v-if="showWelcome" class="welcome">
+        <div class="welcome-emoji">👋</div>
+        <h2>Welcome to Crestwood University!</h2>
+        <p>I'm UniBot, your AI assistant. Ask me anything about admissions,<br/>deadlines, courses, tuition, housing, and more.</p>
+        <div class="welcome-chips">
+          <button v-for="s in starters" :key="s" class="welcome-chip" @click="send(s)">{{ s }}</button>
+        </div>
+      </div>
+
+      <!-- Message list -->
+      <template v-for="(msg, i) in messages" :key="i">
+        <div :class="['msg-row', msg.role === 'user' ? 'user' : 'bot']">
+          <div class="avatar">{{ msg.role === 'user' ? '🧑' : '🤖' }}</div>
+          <div class="bubble-wrap">
+            <div class="bubble" v-html="fmt(msg.content)"></div>
+            <span class="ts">{{ msg.time }}</span>
+            <!-- suggestions only on last bot message -->
+            <div v-if="msg.role === 'assistant' && i === messages.length - 1 && msg.suggestions" class="sug-row">
+              <button v-for="s in msg.suggestions" :key="s" class="sug-chip" @click="send(s)">{{ s }}</button>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Typing indicator -->
+      <div v-if="loading" class="msg-row bot">
+        <div class="avatar">🤖</div>
+        <div class="typing-bubble">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>
+
+      <div ref="anchor"></div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-bar">
+      <div class="input-wrap">
+        <input
+          v-model="input"
+          @keydown.enter.prevent="sendInput"
+          placeholder="Ask about admissions, courses, tuition…"
+          maxlength="500"
+          ref="inputEl"
+        />
+      </div>
+      <button
+        :class="['send-btn', canSend ? 'active' : 'inactive']"
+        @click="sendInput"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          :stroke="canSend ? '#fff' : 'rgba(255,255,255,0.25)'"
+          stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+
+  <div class="footer">Powered by Claude AI · Crestwood University Student Services</div>
+</div>
+
+<script>
+const { createApp, ref, computed, nextTick } = Vue;
+
+const SYSTEM_PROMPT = `You are UniBot, a friendly AI assistant for Crestwood University.
+Answer questions about:
+- Admission Requirements: GPA min 3.0, SAT 1100+ or ACT 22+, personal statement, 2 recommendation letters, TOEFL 80+ for international students
+- Deadlines: Fall 2025 undergrad March 1, grad Feb 1, FAFSA March 15; Spring 2026 undergrad Oct 15
+- Courses & Programs: BS Computer Science (120cr), BBA Business (120cr), BS Engineering (128cr), MS Data Science (36cr), MBA (48cr), BA Psychology (120cr)
+- Tuition: In-state undergrad $350/credit (~$5,250/sem), out-of-state $650/credit, grad $550/credit. Pell grants, merit scholarships $2k–$15k/yr
+- Housing: Freshman halls $4,200–$5,400/sem, suites $4,800–$6,200/sem, meal plans $1,700–$2,400/sem
+- Contact: admissions@crestwood.edu | (555) 200-1001 | Mon–Fri 8am–5pm
+
+Rules:
+- Be warm, concise, and encouraging
+- Use **bold** for key terms, bullet points for lists
+- Keep responses under 200 words unless more detail is genuinely needed
+- Always offer to help further`;
+
+const SUGGESTIONS = ["Admission requirements", "Key deadlines", "Tuition & financial aid", "Available programs"];
+
+createApp({
+  setup() {
+    const messages  = ref([]);
+    const input     = ref('');
+    const loading   = ref(false);
+    const showWelcome = ref(true);
+    const anchor    = ref(null);
+    const inputEl   = ref(null);
+
+    const canSend = computed(() => input.value.trim().length > 0 && !loading.value);
+
+    const topics = [
+      { icon: '📋', label: 'Admissions', q: 'What are the admission requirements?' },
+      { icon: '📅', label: 'Deadlines',  q: 'What are the important application deadlines?' },
+      { icon: '📚', label: 'Courses',    q: 'What degree programs and courses are available?' },
+      { icon: '💰', label: 'Tuition',    q: 'How much is tuition and what financial aid is available?' },
+      { icon: '🏠', label: 'Housing',    q: 'What are the on-campus housing options?' },
+      { icon: '📞', label: 'Contact',    q: 'How do I contact the admissions office?' },
+    ];
+
+    const starters = [
+      'What are the admission requirements?',
+      'What are the key deadlines?',
+      'Tell me about tuition and financial aid',
+      'What programs do you offer?',
+    ];
+
+    function now() {
+      return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function fmt(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^- (.+)$/gm, '• $1')
+        .replace(/\n/g, '<br/>');
+    }
+
+    async function scrollDown() {
+      await nextTick();
+      anchor.value?.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function send(text) {
+      const msg = (text || input.value).trim();
+      if (!msg || loading.value) return;
+
+      input.value = '';
+      showWelcome.value = false;
+      messages.value.push({ role: 'user', content: msg, time: now() });
+      loading.value = true;
+      await scrollDown();
+
+      try {
+        const apiMsgs = messages.value.map(m => ({ role: m.role, content: m.content }));
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1000,
+            system: SYSTEM_PROMPT,
+            messages: apiMsgs,
+          }),
+        });
+        const data = await res.json();
+        const reply = data.content?.[0]?.text || 'Sorry, I had trouble responding. Please try again.';
+        messages.value.push({
+          role: 'assistant',
+          content: reply,
+          time: now(),
+          suggestions: SUGGESTIONS,
+        });
+      } catch {
+        messages.value.push({
+          role: 'assistant',
+          content: "I'm having trouble connecting right now. Please try again in a moment.",
+          time: now(),
+        });
+      }
+
+      loading.value = false;
+      await scrollDown();
+      inputEl.value?.focus();
+    }
+
+    function sendInput() {
+      if (canSend.value) send();
+    }
+
+    return { messages, input, loading, showWelcome, anchor, inputEl, canSend, topics, starters, send, sendInput, fmt };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
